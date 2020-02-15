@@ -1,110 +1,38 @@
 package xenocryst.utilitybot;
 
 
-import discord4j.core.DiscordClient;
-import discord4j.core.DiscordClientBuilder;
+import org.pf4j.DefaultPluginManager;
 import org.pf4j.PluginManager;
+import xenocryst.utilitybot.config.configManager;
+import xenocryst.utilitybot.modules.module;
 
-import javax.swing.*;
-import java.awt.*;
-import java.util.ArrayList;
+import java.util.List;
 
 public class driver {
+    PluginManager pluginManager = new DefaultPluginManager();
+
     public static void main(String[] args) {
-        for (String s : args) {
-            configManager.put(s);
-            System.out.println("s = " + s);
-        }
-        System.out.print("potatoes");
-        new driver();
+        new driver(args);
     }
 
-    public driver() {
-        String token = "";
-        DiscordClient client = new DiscordClientBuilder(token).build();
-    }
-}
-
-class userWindow extends JFrame {
-    public userWindow() throws HeadlessException {
-
-    }
-}
-
-class configManager {
-    public static ArrayList<configNameSpace> nameSpaces = new ArrayList<configNameSpace>();
-
-    public static configNameSpace put(String arg) {
-        String nameSpace = null;
-        String keyname = null;
-        Class valueType = null;
-        Object value = null;
-
-        if (arg.isEmpty() || !arg.contains("[") || !arg.contains("]")) {
-            //ERROR
-        } else {
-            String[] split = arg.split("\\[");
-
-            keyname = split[0].split(":")[1];
-            nameSpace = split[0].split(":")[0];
-
-
-            //
-            switch (split[1].split("\\]")[0].charAt(0)) {
-                case 'b':
-                    valueType = Boolean.TYPE;
-                    if (arg.split("\\=")[1] == "true") {
-                        value = true;
-                    } else {
-                        value = false;
-                    }
-                    break;
-                case 's':
-                    value = arg.split("\\=")[1];
-                    break;
-            }
-
-            //
-            for (configNameSpace ns : nameSpaces) {
-                if (ns.getName().equals(nameSpace)) {
-                    //there is a namespace that fits the bill, we should add the entry to that namespace
-                    ns.addEntry(nameSpace, valueType, value);
-                }
-            }
-        }
-        return null;
+    public driver(String[] args) {
+        for (String arg : args) configManager.put(arg);
+        pluginManager.loadPlugins();
+        pluginManager.startPlugins();
+        String p = configManager.retrieveConfig("discord_github").getEntry("doesPoop").getValue().toString();
+        System.out.println(p);
     }
 
-}
-
-class configNameSpace {
-    private String name;
-    public ArrayList<configEntry> entries = new ArrayList<>();
-
-    public String getName() {
-        return name;
-    }
-
-    public configEntry addEntry(String name, Class type, Object value) {
-        configEntry c = new configEntry(name, type, value);
-        entries.add(c);
-        return c;
-    }
-
-
-    public configNameSpace(String namespace) {
-
+    public void loadModules(PluginManager pl){
+        //if there are different types of modules this method will call submethodes for loading those
+        List<module> mainModules = pl.getExtensions(module.class);
+        System.out.println("There are "+ mainModules.size() + " main modules");
+        mainModules.stream().map((module -> {
+            module.loadModule(configManager.retrieveConfig(module.getClass().getCanonicalName()));
+            return module;
+        })).forEachOrdered(module -> {
+            System.out.println(">>> Finished loading " + module.getClass().getCanonicalName() + "\n");
+        });
     }
 }
 
-class configEntry {
-    private Class type;
-    private String name;
-    private Object value;
-
-    public configEntry(String name, Class type, Object value) {
-        this.type = type;
-        this.name = name;
-        this.value = value;
-    }
-}
