@@ -1,9 +1,8 @@
 package xenocryst.utilitybot.modules;
 
-import org.pf4j.ExtensionPoint;
 import xenocryst.utilitybot.config.configNameSpace;
 
-public interface module extends ExtensionPoint {
+public interface module{
 
     /**
      * The init code for the module
