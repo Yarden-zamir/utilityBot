@@ -1,5 +1,7 @@
 package xenocryst.utilitybot.config;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.ArrayList;
 
 public class configNameSpace {
@@ -29,6 +31,7 @@ public class configNameSpace {
         return entries;
     }
 
+    @Nullable
     public configEntry getEntry(String name){
         for (configEntry entry : entries){
             if (entry.getName().equals(name)){

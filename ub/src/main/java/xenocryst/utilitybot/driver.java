@@ -22,9 +22,8 @@ public class driver {
 		Set<Class<? extends module>> modules = ref.getSubTypesOf(module.class);
 		for (Class m : modules)
 			try {
-				System.out.println(m.getName());
-				Method meth = m.getDeclaredMethod("loadModule", configNameSpace.class);
-				meth.invoke(m.newInstance(), configManager.retrieveConfig(m));
+				Method method = m.getDeclaredMethod("loadModule", configNameSpace.class);
+				method.invoke(m.newInstance(), configManager.retrieveConfig(m));
 			} catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 				e.printStackTrace();
 			}
