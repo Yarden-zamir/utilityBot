@@ -10,5 +10,5 @@ public interface module{
      * @param cfg the config category for the given module
      * @return itself
      */
-    public module loadModule(configNameSpace cfg);
+    public static void loadModule(configNameSpace cfg){}
 }

@@ -1,24 +1,33 @@
 package xenocryst.utilitybot;
 
 
-import com.sun.webkit.plugin.PluginManager;
+import org.reflections.Reflections;
 import xenocryst.utilitybot.config.configManager;
+import xenocryst.utilitybot.config.configNameSpace;
+import xenocryst.utilitybot.modules.module;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Set;
 
 public class driver {
 
-    public static void main(String[] args) {
-        new driver(args);
-    }
+	public static void main(String[] args) {
+		for (String arg : args) configManager.put(arg);
+		loadModules();
+	}
 
-    public driver(String[] args) {
-        for (String arg : args) configManager.put(arg);
-//pugin load
-        String p = configManager.retrieveConfig("discord_github").getEntry("doesPoop").getValue().toString();
-
-    }
-
-    public void loadModules(PluginManager pl){
-        //if there are different types of modules this method will call submethodes for loading those
-    }
+	public static void loadModules() {
+		Reflections ref = new Reflections("xenocryst");
+		Set<Class<? extends module>> modules = ref.getSubTypesOf(module.class);
+		for (Class m : modules)
+			try {
+				System.out.println(m.getName());
+				Method meth = m.getDeclaredMethod("loadModule", configNameSpace.class);
+				meth.invoke(m.newInstance(), configManager.retrieveConfig(m));
+			} catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+				e.printStackTrace();
+			}
+	}
 }
 

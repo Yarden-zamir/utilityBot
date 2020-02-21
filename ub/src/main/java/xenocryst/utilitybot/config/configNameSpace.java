@@ -37,4 +37,19 @@ public class configNameSpace {
         }
         return null;
     }
+
+    /**
+     * Use this to get an entry safely
+     * @param name The name of the entry
+     * @param defaultValue If there is no entry, the value to return (returns as a new configEntry object with the given value)
+     * @return
+     */
+    public configEntry getEntry(String name,Object defaultValue){
+        configEntry r = getEntry(name);
+        if (r==null){
+            return new configEntry(name, defaultValue.getClass(), defaultValue);
+        }else{
+            return r;
+        }
+    }
 }

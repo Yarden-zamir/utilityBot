@@ -1,13 +1,11 @@
 package xenocryst.utilitybot.config;
 
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 
 public class configManager {
     public static ArrayList<configNameSpace> nameSpaces = new ArrayList<configNameSpace>();
 
-    @Nullable
     public static configNameSpace retrieveConfig(String namespaceName) {
         for (configNameSpace c : nameSpaces) {
             if (c.getName().equals(namespaceName)) {
@@ -16,8 +14,11 @@ public class configManager {
         }
         return null;
     }
+    public static configNameSpace retrieveConfig(Class c){
+        return retrieveConfig(c.getSimpleName());
+    }
 
-    @Nullable
+
     public static ArrayList<configNameSpace> put(String arg) {
 //        System.out.println("loading argument = " + arg);
         String nameSpace = null;
