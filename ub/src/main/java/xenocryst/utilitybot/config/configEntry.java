@@ -25,6 +25,11 @@ public class configEntry {
         return value;
     }
 
+    @Override
+    public String toString() {
+    	return super.toString();
+    }
+
     public void setValue(Object value) {
         this.value = value;
     }
