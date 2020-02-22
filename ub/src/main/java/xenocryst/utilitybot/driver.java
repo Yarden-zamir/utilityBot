@@ -19,7 +19,6 @@ public class driver {
 	public static void main(String[] args) {
 		for (String arg : args) configManager.put(arg);
 		try (Stream<String> stream = Files.lines(Paths.get("config.args"))) {
-			stream.forEach(System.out::println);
 			stream.forEach( line -> configManager.put(line));
 		} catch (IOException e) {
 			e.printStackTrace();

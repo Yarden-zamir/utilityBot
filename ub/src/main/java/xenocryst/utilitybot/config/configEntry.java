@@ -27,7 +27,7 @@ public class configEntry {
 
     @Override
     public String toString() {
-    	return super.toString();
+    	return (String)this.getValue();
     }
 
     public void setValue(Object value) {
