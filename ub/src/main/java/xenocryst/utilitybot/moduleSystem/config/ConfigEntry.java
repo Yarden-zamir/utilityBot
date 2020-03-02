@@ -1,17 +1,8 @@
-package xenocryst.utilitybot.config;
+package xenocryst.utilitybot.moduleSystem.config;
 
-public class configEntry {
-    private Class type;
+public class ConfigEntry {
     private String name;
     private Object value;
-
-    public Class getType() {
-        return type;
-    }
-
-    public void setType(Class type) {
-        this.type = type;
-    }
 
     public String getName() {
         return name;
@@ -30,12 +21,17 @@ public class configEntry {
     	return (String)this.getValue();
     }
 
+    public String getStringValue() {
+        String value = toString();
+        if (value==null)
+            value="object is not a string";
+        return toString();
+    }
     public void setValue(Object value) {
         this.value = value;
     }
 
-    public configEntry(String name, Class type, Object value) {
-        this.type = type;
+    public ConfigEntry(String name, Object value) {
         this.name = name;
         this.value = value;
     }
