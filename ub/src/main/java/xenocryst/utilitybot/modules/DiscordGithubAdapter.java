@@ -1,5 +1,6 @@
 package xenocryst.utilitybot.modules;
 
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.eclipse.egit.github.core.RepositoryId;
@@ -27,9 +28,12 @@ public class DiscordGithubAdapter implements Module {
 		moduleDiscord = (ModuleDiscord) ModuleManager.getModule(ModuleDiscord.class.getSimpleName());
 		moduleGithub = (ModuleGithub) ModuleManager.getModule(ModuleGithub.class.getSimpleName());
 
-		gitHubClient=moduleGithub.gitHubClient;
-		gitHubRepo=moduleGithub.gitHubRepo;
-		MessageListener ml = new MessageListener(new ArrayList<>(), "/", this);
+		gitHubClient = moduleGithub.gitHubClient;
+		gitHubRepo = new RepositoryId(
+				cfg.getEntry("repoOwner", "").toString(),
+				cfg.getEntry("repo", "").toString()
+		);
+		MessageListener ml = new MessageListener(new ArrayList<>(), cfg, this);
 		moduleDiscord.adapter.addEventListener(ml);
 		return this;
 
@@ -49,23 +53,52 @@ public class DiscordGithubAdapter implements Module {
 class MessageListener extends ListenerAdapter {
 
 	private ArrayList<String> blackListCommandChannels;
-	private String commandPrefix;
+	private String commandPrefix = "/";
+	private String issuePrefix = "!";
+	private ConfigNameSpace cfg;
 	private DiscordGithubAdapter adapter;
+	private String issueChannelNewIssuePrefix;
+	private String issueIDIdentifierPrefix;
+	private IssueService issueService;
+	private GitHubClient gitHubClient;
 
-	public MessageListener(ArrayList<String> blackListCommandChannels, String commandPrefix, DiscordGithubAdapter adapter) {
+	public MessageListener(ArrayList<String> blackListCommandChannels, ConfigNameSpace cfg, DiscordGithubAdapter adapter) {
 
+		this.issueChannelNewIssuePrefix = String.valueOf(cfg.getEntry("issueChannelNewIssuePrefix", "!"));
+		this.issueIDIdentifierPrefix = String.valueOf(cfg.getEntry("issueIDIdentifierPrefix", "#"));
 		this.blackListCommandChannels = blackListCommandChannels;
-		this.commandPrefix = commandPrefix;
+		this.cfg = cfg;
 		this.adapter = adapter;
+		this.gitHubClient=adapter.gitHubClient;
+		issueService = new IssueService(gitHubClient);
 	}
 
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event) {
-		if (event.getMessage().getContentRaw().startsWith(commandPrefix)) {
+		if (event.getMessage().getContentRaw().startsWith(commandPrefix)) {//universal commands
 			if (!blackListCommandChannels.contains(event.getChannel())) {
 				//run event
 				runCommand(event.getMessage().getContentRaw().replaceFirst(commandPrefix, ""));
 			}
+		}
+		if (event.getChannel().getParent().getName().equals("Milestones")) { //add an issue to milestones
+			String milestone = event.getChannel().getName();
+
+		}
+		if (event.getChannel().getName().equalsIgnoreCase("issues")) {
+			handleIssue(event.getMessage());
+		}
+
+	}
+
+	private void handleIssue(Message m) {
+		if (m.getContentDisplay().startsWith(issueChannelNewIssuePrefix)) {
+			//add issue
+			issueService.
+		} else if (m.getContentDisplay().startsWith(issueIDIdentifierPrefix)) {
+			//comment on issue
+		} else {
+			//comment on last issue
 		}
 	}
 

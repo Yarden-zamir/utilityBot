@@ -38,7 +38,7 @@ public class ConfigNameSpace {
 				return entry;
 			}
 		}
-		throw new NoSuchFieldException("entry was not found, ,make sure the entry exists and is properly formatted" +
+		throw new NoSuchFieldException("entry was not found, make sure the entry exists and is properly formatted" +
 				" \n example of how this entry should look: " + this.name + ":" + name + "=[VALUE]");
 	}
 

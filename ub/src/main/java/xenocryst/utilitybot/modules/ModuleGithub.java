@@ -8,7 +8,6 @@ import xenocryst.utilitybot.moduleSystem.modules.moduleVisibility;
 
 public class ModuleGithub implements Module {
 	public GitHubClient gitHubClient;
-	RepositoryId gitHubRepo;
 
 	@Override
 	public Module loadModule(ConfigNameSpace cfg) {
@@ -16,10 +15,7 @@ public class ModuleGithub implements Module {
 				cfg.getEntry("username", "").toString(),
 				cfg.getEntry("password", "").toString()
 		);
-		gitHubRepo = new RepositoryId(
-				cfg.getEntry("repoOwner", "").toString(),
-				cfg.getEntry("repo", "").toString()
-		);
+
 		return this;
 	}
 
