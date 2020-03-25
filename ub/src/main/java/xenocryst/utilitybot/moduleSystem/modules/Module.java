@@ -9,7 +9,7 @@ public interface Module {
      * @param cfg the config category for the given module
      * @return itself
      */
-    public Module loadModule(ConfigNameSpace cfg) throws Exception;
-    public int getLoadOrder();
-    public moduleVisibility getVisibility();
+    Module loadModule(ConfigNameSpace cfg) throws Exception;
+    int getLoadOrder();
+    moduleVisibility getVisibility();
 }

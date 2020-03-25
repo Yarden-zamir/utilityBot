@@ -46,14 +46,15 @@ public class ConfigManager {
 //        System.out.println("loading argument = " + arg);
 		String nameSpace = null;
 		String keyname = null;
-		Object value = null;
+		Object value = "";
 
 		//todo validate
 		String[] split = arg.split("\\=");
 
 		keyname = split[0].split(":")[1];
 		nameSpace = split[0].split(":")[0];
-        value = split[1];
+		if (split.length > 1)
+			value = split[1];
 		put(nameSpace, keyname, value);
 
 		//

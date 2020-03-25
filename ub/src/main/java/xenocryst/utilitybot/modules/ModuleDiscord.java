@@ -20,14 +20,8 @@ public class ModuleDiscord implements Module {
 		} catch (LoginException e) {
 			e.printStackTrace();
 		}
-		publishTo("");
 		return this;
 	}
-
-	private void publishTo(String namespace) {
-
-	}
-
 
 	@Override
 	public int getLoadOrder() {

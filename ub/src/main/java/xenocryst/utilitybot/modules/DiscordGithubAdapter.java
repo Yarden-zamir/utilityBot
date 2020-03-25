@@ -1,18 +1,25 @@
 package xenocryst.utilitybot.modules;
 
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.eclipse.egit.github.core.Issue;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.IssueService;
+import org.jetbrains.annotations.NotNull;
 import xenocryst.utilitybot.moduleSystem.config.ConfigNameSpace;
 import xenocryst.utilitybot.moduleSystem.modules.Module;
 import xenocryst.utilitybot.moduleSystem.modules.ModuleManager;
 import xenocryst.utilitybot.moduleSystem.modules.moduleVisibility;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class DiscordGithubAdapter implements Module {
 	ModuleDiscord moduleDiscord;
@@ -52,6 +59,7 @@ public class DiscordGithubAdapter implements Module {
 
 class MessageListener extends ListenerAdapter {
 
+	private String commandChannelCommandWrap;
 	private ArrayList<String> blackListCommandChannels;
 	private String commandPrefix = "/";
 	private String issuePrefix = "!";
@@ -61,54 +69,113 @@ class MessageListener extends ListenerAdapter {
 	private String issueIDIdentifierPrefix;
 	private IssueService issueService;
 	private GitHubClient gitHubClient;
+	private RepositoryId repo;
+	private HashMap<User, String> userReferanceMap = new HashMap<>();
+
 
 	public MessageListener(ArrayList<String> blackListCommandChannels, ConfigNameSpace cfg, DiscordGithubAdapter adapter) {
 
 		this.issueChannelNewIssuePrefix = String.valueOf(cfg.getEntry("issueChannelNewIssuePrefix", "!"));
 		this.issueIDIdentifierPrefix = String.valueOf(cfg.getEntry("issueIDIdentifierPrefix", "#"));
+		this.commandChannelCommandWrap = String.valueOf(cfg.getEntry("commandChannelCommandWrap", "---"));
 		this.blackListCommandChannels = blackListCommandChannels;
 		this.cfg = cfg;
 		this.adapter = adapter;
-		this.gitHubClient=adapter.gitHubClient;
+		this.gitHubClient = adapter.gitHubClient;
 		issueService = new IssueService(gitHubClient);
+		repo = new RepositoryId(
+				String.valueOf(cfg.getEntry("repoOwner", "#")),
+				String.valueOf(cfg.getEntry("repo", "#"))
+		);
 	}
 
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event) {
-		if (event.getMessage().getContentRaw().startsWith(commandPrefix)) {//universal commands
-			if (!blackListCommandChannels.contains(event.getChannel())) {
-				//run event
-				runCommand(event.getMessage().getContentRaw().replaceFirst(commandPrefix, ""));
+		if (!blackListCommandChannels.contains(event.getChannel())) {
+			tryCommand(event.getMessage());
+		}
+	}
+
+	private String parseTopicCommandShortcuts(String topic, String commandStr){
+		HashMap<String,String> shortCutMap = new HashMap<>();
+		if (topic.split(commandChannelCommandWrap)[1].length() > 2) {
+			//is correctly formatted with start and end wrap
+			commandStr = topic.split(commandChannelCommandWrap)[1];
+			if (commandStr.contains("\\[message\\]")) {//todo replace this with containes element from element list which containes message;
+				commandStr = commandStr.replaceAll("\\[message\\]", message.getContentDisplay());
 			}
 		}
-		if (event.getChannel().getParent().getName().equals("Milestones")) { //add an issue to milestones
-			String milestone = event.getChannel().getName();
-
+		return commandStr;
+	}
+	private void tryCommand(@NotNull Message message) {
+		//see if a command should be run
+		String commandStr = message.getContentDisplay();
+		if (message.getTextChannel().getTopic() != null)
+			if (message.getTextChannel().getTopic().contains(commandChannelCommandWrap)) {
+				//see if we are in a command channel
+				commandStr= parseTopicCommandShortcuts(message.getTextChannel().getTopic(),commandStr);
+			}
+		if (commandStr.startsWith(commandPrefix)) {
+			//see if we are using a command prefix
+			for (Method m : getClass().getDeclaredMethods()) {
+				if (m.isAnnotationPresent(Runnable.class)) {
+					String commandName = commandStr.split(commandPrefix)[1].split(" ")[0];
+					for (String possibleCommandEvo : m.getAnnotation(Runnable.class).command()) {
+						if (possibleCommandEvo.equalsIgnoreCase(commandName)) {
+							System.out.println("Running command " + commandStr);
+							//see if the command exists
+							try {
+								m.invoke(this, message);
+							} catch (IllegalAccessException e) {
+								e.printStackTrace();
+							} catch (InvocationTargetException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+			}
 		}
-		if (event.getChannel().getName().equalsIgnoreCase("issues")) {
-			handleIssue(event.getMessage());
-		}
-
 	}
 
-	private void handleIssue(Message m) {
-		if (m.getContentDisplay().startsWith(issueChannelNewIssuePrefix)) {
-			//add issue
-			issueService.
-		} else if (m.getContentDisplay().startsWith(issueIDIdentifierPrefix)) {
-			//comment on issue
+	private String getUser(Message m) {
+		String user;
+		if (userReferanceMap.containsKey(m.getAuthor())) {
+			user = userReferanceMap.get(m.getAuthor());
 		} else {
-			//comment on last issue
+			user = m.getMember().getNickname();
+			if (user == null)
+				user = m.getAuthor().getName();
 		}
+		return user;
 	}
 
-	private void runCommand(String command) {
-		if (command.startsWith("issue")) {
-			addIssue(command.replaceFirst("issue", ""));
-		}
-	}
 
-	private void addIssue(String issue) {
-		System.out.println("Added issue");
+	@Runnable(command = {"issue", "newIssue", "addIssue", "postIssue", "report"})
+	private void addIssue(Message issueMessage) {
+		System.out.println("Added issue!");
+		try {
+			///issue potato
+			String message = issueMessage.getContentDisplay();
+			if (message.startsWith(issuePrefix + "issue")) { //this should always be true...
+				message = message.replaceFirst(issuePrefix + "issue", "");
+			}
+			if (message.startsWith(issueChannelNewIssuePrefix)) {
+				//add issue
+				issueService.createIssue(repo, new Issue()
+						.setTitle(message.split("\n")[0])
+						.setBody(
+								"@" + getUser(issueMessage) + ": " +
+										message.split("\n")[0]));
+
+
+			} else if (message.startsWith(issueIDIdentifierPrefix)) {
+				//comment on issue
+			} else {
+				//comment on last issue
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
