@@ -1,4 +1,4 @@
-package xenocryst.utilitybot.modules;
+package xenocryst.utilitybot.modules.microsoft;
 
 import com.microsoft.aad.msal4j.DeviceCode;
 import com.microsoft.aad.msal4j.DeviceCodeFlowParameters;

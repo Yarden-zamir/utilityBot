@@ -1,4 +1,4 @@
-package xenocryst.utilitybot.modules;
+package xenocryst.utilitybot.modules.microsoft;
 
 
 import com.microsoft.graph.authentication.IAuthenticationProvider;

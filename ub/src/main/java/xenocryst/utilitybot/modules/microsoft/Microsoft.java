@@ -1,4 +1,4 @@
-package xenocryst.utilitybot.modules;
+package xenocryst.utilitybot.modules.microsoft;
 
 import com.microsoft.graph.models.extensions.User;
 import xenocryst.utilitybot.moduleSystem.config.ConfigNameSpace;
