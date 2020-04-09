@@ -10,6 +10,11 @@ public interface Module {
      * @return itself
      */
     Module loadModule(ConfigNameSpace cfg) throws Exception;
-    int getLoadOrder();
+	default int getLoadOrder(){
+		return 1;
+	};
     moduleVisibility getVisibility();
+    default boolean enabled(){
+    	return true;
+    };
 }

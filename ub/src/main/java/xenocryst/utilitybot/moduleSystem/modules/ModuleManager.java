@@ -34,12 +34,16 @@ public class ModuleManager {
 		for (Class<? extends Module> moduleClass : modulesSet) modulesArr.add(moduleClass);
 		Collections.sort(modulesArr, compareLoadOrder);
 		for (Class moduleClass : modulesArr) {
-			System.out.println(moduleClass.getSimpleName() + " is starting");
 			try {
-				Method method = moduleClass.getDeclaredMethod("loadModule", ConfigNameSpace.class);
-				Module m = (Module) moduleClass.newInstance();
-				method.invoke(m, ConfigManager.retrieveConfig(moduleClass));
-				modules.add(m);
+				if (((Module) moduleClass.newInstance()).enabled()) {
+					System.out.println(moduleClass.getSimpleName() + " is starting");
+					Method method = moduleClass.getDeclaredMethod("loadModule", ConfigNameSpace.class);
+					Module m = (Module) moduleClass.newInstance();
+					method.invoke(m, ConfigManager.retrieveConfig(moduleClass));
+					modules.add(m);
+				} else {
+					System.out.println(moduleClass.getSimpleName() + " is disabled");
+				}
 			} catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 				e.printStackTrace();
 			}

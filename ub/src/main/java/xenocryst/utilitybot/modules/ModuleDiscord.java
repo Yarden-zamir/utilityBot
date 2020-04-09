@@ -10,7 +10,7 @@ import xenocryst.utilitybot.moduleSystem.modules.moduleVisibility;
 import javax.security.auth.login.LoginException;
 
 public class ModuleDiscord implements Module {
-	JDA adapter;
+	public JDA adapter;
 
 	@Override
 	public Module loadModule(ConfigNameSpace cfg) throws Exception{

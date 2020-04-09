@@ -8,6 +8,7 @@ import org.eclipse.egit.github.core.Issue;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.IssueService;
+import org.eclipse.egit.github.core.service.RepositoryService;
 import org.jetbrains.annotations.NotNull;
 import xenocryst.utilitybot.moduleSystem.config.ConfigNameSpace;
 import xenocryst.utilitybot.moduleSystem.modules.Module;
@@ -29,6 +30,10 @@ public class DiscordGithubAdapter implements Module {
 	RepositoryId gitHubRepo;
 	IssueService issueService;
 
+	@Override
+	public boolean enabled() {
+		return false;
+	}
 
 	@Override
 	public Module loadModule(ConfigNameSpace cfg) {
@@ -42,6 +47,7 @@ public class DiscordGithubAdapter implements Module {
 		);
 		MessageListener ml = new MessageListener(new ArrayList<>(), cfg, this);
 		moduleDiscord.adapter.addEventListener(ml);
+		RepositoryService s = new RepositoryService(gitHubClient);
 		return this;
 
 	}
@@ -89,6 +95,7 @@ class MessageListener extends ListenerAdapter {
 		);
 	}
 
+
 	@Override
 	public void onGuildMessageReceived(@Nonnull GuildMessageReceivedEvent event) {
 		if (!blackListCommandChannels.contains(event.getChannel())) {
@@ -96,24 +103,36 @@ class MessageListener extends ListenerAdapter {
 		}
 	}
 
-	private String parseTopicCommandShortcuts(String topic, String commandStr){
-		HashMap<String,String> shortCutMap = new HashMap<>();
-		if (topic.split(commandChannelCommandWrap)[1].length() > 2) {
-			//is correctly formatted with start and end wrap
+	private String parseTopicCommandShortcuts(String topic, String commandStr, String message) {
+		if (topic.split(commandChannelCommandWrap)[1].length() > 2) {//is correctly formatted with start and end wrap
 			commandStr = topic.split(commandChannelCommandWrap)[1];
-			if (commandStr.contains("\\[message\\]")) {//todo replace this with containes element from element list which containes message;
-				commandStr = commandStr.replaceAll("\\[message\\]", message.getContentDisplay());
+			for (String line : commandStr.split("\n")) {
+				if (line.contains("=")) {
+					String prefix = line.split("=")[0];
+					String command = line.split("=")[1];
+					//go through lines and check for trigger
+					//first line that triggers should be extracted;
+					if (message.startsWith(prefix)) {
+						commandStr = command;
+						message = message.replaceFirst(prefix, "");
+						break;
+					}
+				}
+			}
+			if (commandStr.contains("[message]")) {//todo replace this with containes element from element list which containes message;
+				commandStr = commandStr.replaceAll("\\[message\\]", message);
 			}
 		}
 		return commandStr;
 	}
+
 	private void tryCommand(@NotNull Message message) {
 		//see if a command should be run
 		String commandStr = message.getContentDisplay();
 		if (message.getTextChannel().getTopic() != null)
 			if (message.getTextChannel().getTopic().contains(commandChannelCommandWrap)) {
 				//see if we are in a command channel
-				commandStr= parseTopicCommandShortcuts(message.getTextChannel().getTopic(),commandStr);
+				commandStr = parseTopicCommandShortcuts(message.getTextChannel().getTopic(), commandStr, message.getContentDisplay());
 			}
 		if (commandStr.startsWith(commandPrefix)) {
 			//see if we are using a command prefix
@@ -125,7 +144,7 @@ class MessageListener extends ListenerAdapter {
 							System.out.println("Running command " + commandStr);
 							//see if the command exists
 							try {
-								m.invoke(this, message);
+								m.invoke(this, message, commandStr.replaceFirst(commandPrefix + commandName, "").trim());
 							} catch (IllegalAccessException e) {
 								e.printStackTrace();
 							} catch (InvocationTargetException e) {
@@ -138,6 +157,10 @@ class MessageListener extends ListenerAdapter {
 		}
 	}
 
+	/**
+	 * @param m
+	 * @return The github username of the person that wrote the message, if none are in the database then it will return the discord name
+	 */
 	private String getUser(Message m) {
 		String user;
 		if (userReferanceMap.containsKey(m.getAuthor())) {
@@ -150,30 +173,23 @@ class MessageListener extends ListenerAdapter {
 		return user;
 	}
 
+	@Runnable(command = "test")
+	private void testCommand(Message m, String commandStr) {
+		System.out.println("Test command ran " + commandStr);
+	}
+
 
 	@Runnable(command = {"issue", "newIssue", "addIssue", "postIssue", "report"})
-	private void addIssue(Message issueMessage) {
+	private void addIssue(Message issueMessage, String commandStr) {
 		System.out.println("Added issue!");
 		try {
 			///issue potato
 			String message = issueMessage.getContentDisplay();
-			if (message.startsWith(issuePrefix + "issue")) { //this should always be true...
-				message = message.replaceFirst(issuePrefix + "issue", "");
-			}
-			if (message.startsWith(issueChannelNewIssuePrefix)) {
-				//add issue
-				issueService.createIssue(repo, new Issue()
-						.setTitle(message.split("\n")[0])
-						.setBody(
-								"@" + getUser(issueMessage) + ": " +
-										message.split("\n")[0]));
-
-
-			} else if (message.startsWith(issueIDIdentifierPrefix)) {
-				//comment on issue
-			} else {
-				//comment on last issue
-			}
+			issueService.createIssue(repo, new Issue()
+					.setTitle(message.split("\n")[0])
+					.setBody(
+							"@" + getUser(issueMessage) + ": " +
+									message.split("\n")[0]));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
