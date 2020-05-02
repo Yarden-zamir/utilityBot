@@ -1,16 +1,16 @@
 package xenocryst.utilitybot.modules.makeShitHappen;
 
 import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.channel.category.CategoryCreateEvent;
 import net.dv8tion.jda.api.events.channel.category.CategoryDeleteEvent;
 import net.dv8tion.jda.api.events.channel.category.update.CategoryUpdateNameEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.eclipse.egit.github.core.Issue;
 import org.eclipse.egit.github.core.Repository;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.CollaboratorService;
 import org.eclipse.egit.github.core.service.IssueService;
 import org.eclipse.egit.github.core.service.RepositoryService;
+import org.jetbrains.annotations.Nullable;
 import xenocryst.utilitybot.moduleSystem.config.ConfigNameSpace;
 import xenocryst.utilitybot.moduleSystem.modules.Module;
 import xenocryst.utilitybot.moduleSystem.modules.ModuleManager;
@@ -18,8 +18,8 @@ import xenocryst.utilitybot.moduleSystem.modules.moduleVisibility;
 import xenocryst.utilitybot.modules.ModuleDiscord;
 import xenocryst.utilitybot.modules.ModuleGithub;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * This module will connect events in discord and github together acording to the MSH design language
@@ -52,6 +52,11 @@ public class MshAdapter implements Module {
 		}
 		repositoryService = new RepositoryService(gitHubClient);
 		collaboratorService = new CollaboratorService(gitHubClient);
+		issueService = new IssueService(gitHubClient);
+
+		//
+
+
 		return this;
 	}
 
@@ -65,65 +70,98 @@ public class MshAdapter implements Module {
 		return null;
 	}
 
-	public Repository createNewCluster(CategoryCreateEvent event) throws IOException {
-		Repository repository = new Repository().setHasIssues(true).setPrivate(true);
-		repository.setName(event.getCategory().getName());
-		repositoryService.createRepository(repository);
 
+	public Repository openCluster(String clusterName) throws IOException {
+		Repository repository = getLiveCluster(clusterName);
+		if (repository == null) {
+			repository = new Repository().setHasIssues(true).setPrivate(true);
+			repository.setName(clusterName);
+			repositoryService.createRepository(repository);
+			repository = getLiveCluster(repository.getName());
+			collaboratorService.addCollaborator(repository, "PandaBoy444");
+		} else {
+		}
+		validateTerminal(clusterName);
+		//check if has a terminal, and if not, create one
+
+		return repository;
+	}
+
+	private Issue retrieveIssue(Repository repo, String issueName) throws IOException {
+		issueName = issueName.replaceAll("-", " ");
+		for (Issue I:issueService.getIssues(repo, null)){
+			if (I.getTitle().equalsIgnoreCase(issueName)){
+				return I;
+			}
+		}
+		return null;
+	}
+	public Issue addEntryToIssue(String repoName,String issueName,String entry) throws IOException {
+		Repository repo = openCluster(repoName);
+		issueService.createComment(repo, retrieveIssue(repo, issueName).getNumber() ,entry );
+		return null;
+	}
+	private void validateTerminal(String clusterName) {
+		List<TextChannel> terminals;
+		terminals = moduleDiscord.adapter.getTextChannelsByName("___terminal___", true);
+		boolean hasTerminal = false;
+		for (TextChannel terminal : terminals) {
+			if (terminal.getParent().getName().equalsIgnoreCase(clusterName)) {
+				hasTerminal = true;
+			}
+		}
+		if (!hasTerminal) {
+			//create terminal
+			
+		}
+	}
+
+	@Nullable
+	public Repository getLiveCluster(String clusterName) throws IOException {
 		for (Repository r : repositoryService.getRepositories()) {
-			if (r.getName().equals(repository.getName())) {
-				collaboratorService.addCollaborator(r, "PandaBoy444");
+			if (r.getName().equalsIgnoreCase(clusterName)) {
+				return r;
 			}
 		}
 		return null;
 	}
 
-	public void removeCluster(CategoryDeleteEvent event) throws IOException{
+	public void removeCluster(CategoryDeleteEvent event) throws IOException {
+
 		for (Repository r : repositoryService.getRepositories()) {
-			if (r.getName().equals(event.getCategory().getName())){
-				for (TextChannel textChannel:event.getCategory().getTextChannels()){
+			if (r.getName().equals(event.getCategory().getName())) {
+				for (TextChannel textChannel : event.getCategory().getTextChannels()) {
 					textChannel.delete();
+					System.out.println("removed " + textChannel.getName());
 				}
 			}
 		}
 	}
-	public Repository changeClusterName(CategoryUpdateNameEvent event){
+
+	public Repository changeClusterName(CategoryUpdateNameEvent event) {
+		System.out.println("Renamed");
+		getRepoFromName(event.getOldName()).setName(event.getNewName());
 		return null;
 	}
 
-}
-
-class ListenerAdapterInstance extends ListenerAdapter {
-
-	private MshAdapter adapter;
-
-	public ListenerAdapterInstance(MshAdapter adapter) {
-		this.adapter = adapter;
+	public Issue addIssue(Repository cluster, String issueName, String Entry) throws IOException {
+		issueName = issueName.replaceAll("-", " ");
+		Issue I = new Issue().setTitle(issueName).setBody(Entry);
+		issueService.createIssue(cluster, I);
+		return null;
 	}
 
-	@Override
-	public void onCategoryDelete(@Nonnull CategoryDeleteEvent event) {
+	private Repository getRepoFromName(String name) {
 		try {
-			adapter.removeCluster(event);
+			for (Repository r : repositoryService.getRepositories()) {
+				if (r.getName().equals(name)) {
+					return r;
+				}
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		super.onCategoryDelete(event);
-	}
-
-	@Override
-	public void onCategoryUpdateName(@Nonnull CategoryUpdateNameEvent event) {
-		adapter.changeClusterName(event);
-		super.onCategoryUpdateName(event);
-	}
-
-	@Override
-	public void onCategoryCreate(@Nonnull CategoryCreateEvent event) {
-		try {
-			adapter.createNewCluster(event);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		super.onCategoryCreate(event);
+		return null;
 	}
 }
+
